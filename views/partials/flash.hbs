@@ -1,0 +1,7 @@
+{{#if flash }}
+<div class="mt-2 alert alert-{{ flash.type }}">
+  {{#each flash.errors}}
+  {{ this.msg }}<br>
+  {{/each}}
+</div>
+{{/if}}

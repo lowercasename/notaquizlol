@@ -1,0 +1,50 @@
+<div class="col-12">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="/dashboard/topic/{{quiz.topic._id}}">{{ quiz.topic.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{quiz.name}}</li>
+    </ol>
+  </nav>
+  <h1>{{quiz.name}}</h1>
+  <div class="card mb-3">
+    <div class="card-body">
+      <h2>Attempts</h2>
+      {{#if attempts}}
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Date</th>
+            <th scope="col">Score</th>
+            <th scope="col">Tools</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each attempts}}
+          <tr>
+            <td>{{this.name}}</td>
+            <td>{{this.timestamp}}</td>
+            <td>{{this.score}}/{{this.total}}</td>
+            <td><a data-bs-toggle="collapse" style="white-space:nowrap;" href="#answers--{{this._id}}" role="button" aria-expanded="false" aria-controls="answers--{{this._id}}">Show answers <i class="fal fa-angle-down"></i></a></td>
+          </tr>
+          <tr class="collapse" id="answers--{{this._id}}">
+            <td colspan="4">
+              <ul class="list-unstyled">
+              {{#each this.questions}}
+              <li><i class="fas fa-{{#if this.correct}}check-circle text-success{{else}}times-circle text-danger{{/if}}"></i> {{this.answer}} {{#unless this.correct}}(<strong>Correct answer:</strong> {{this.correctAnswer}}){{/unless}}</li>
+              {{/each}}
+              </ul>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      {{else}}
+      <div class="alert alert-primary">
+        No quiz attempts yet.
+      </div>
+      {{/if}}
+    </div>
+  </div>
+</div>

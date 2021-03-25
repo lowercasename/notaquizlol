@@ -1,0 +1,33 @@
+html, body {
+  font-family: 'Quicksand', sans-serif;
+}
+
+#header {
+  margin-bottom: 2rem;
+}
+
+#header .navbar-brand {
+  font-weight: 700;
+}
+
+.header__icon {
+  height: 20px;
+}
+
+#quiz-header {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+#quiz-header h1 {
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.quiz-header__icon {
+  height: 60px;
+}
+
+#quiz-body {
+  background: #f6f6f6;
+}

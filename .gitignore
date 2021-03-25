@@ -1,0 +1,6 @@
+/.env
+/node_modules
+/test.csv
+/test2.csv
+/uploads
+/yarn.lock

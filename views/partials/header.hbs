@@ -1,0 +1,20 @@
+<header id="header">
+  <nav class="navbar navbar-expand-md navbar-light bg-light">
+    <div class="container-fluid ">
+      <a class="navbar-brand" href="/dashboard"><img class="header__icon" src="/images/otter.png"> not a quiz (lol)</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+        aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse flex-grow-0" id="navbarContent">
+        {{#if user}}
+        <ul class="navbar-nav me-auto mb-2 mb-md-0">
+          <li class="nav-item">
+            <a class="nav-link" href="/sign-out">Sign out <i class="fal fa-sign-out"></i></a>
+          </li>
+        </ul>
+        {{/if}}
+      </div>
+    </div>
+  </nav>
+</header>

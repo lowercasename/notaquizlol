@@ -1,0 +1,70 @@
+<div class="col-12">
+  <h1>Hi {{user.firstName}}!</h1>
+  <hr>
+  <h2>Your Topics</h2>
+  <p class="lead">Topics are collections of questions. Add questions to topics, then build and share
+    quizzes using those questions.</p>
+  {{#if topics}}
+  <div class="list-group">
+    {{#each topics}}
+    <a href="/dashboard/topic/{{this._id}}" class="list-group-item list-group-item-action">
+      {{this.name}}
+    </a>
+    {{/each}}
+  </div>
+  {{else}}
+  <div class="alert alert-primary">
+    You haven't created any topics yet.
+  </div>
+  {{/if}}
+  <form class="mt-3 d-flex flex-wrap align-items-center" method="POST" action="/api/topic">
+    <div class="flex-grow-1 pe-2">
+      <input class="form-control" name="topicName" type="text" placeholder="Topic name"
+        value="{{#if flash}}{{flash.topicName}}{{/if}}">
+    </div>
+    <div class="">
+      <button type="submit" class="btn btn-outline-primary"><i class="fal fa-plus-circle"></i> Create new topic</button>
+    </div>
+  </form>
+  {{> flash}}
+
+</div>
+
+{{!--
+<!-- New topic modal -->
+<div class="modal fade" id="newTopicModal" tabindex="-1" aria-labelledby="newTopicModalLabel" aria-hidden="true">
+  <form method="POST" action="/api/topic">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="newTopicModalLabel">Create new topic</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          {{#if flash }}
+          <div class="alert alert-{{ flash.type }}">
+            {{#each flash.errors}}
+            {{ this.msg }}<br>
+            {{/each}}
+          </div>
+          {{/if}}
+          <div class="form-group">
+            <input class="form-control" name="topicName" type="text" placeholder="Topic name"
+              value="{{#if flash}}{{flash.topicName}}{{/if}}">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Create topic</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+{{#if flash}}
+<script>
+  var newTopicModal = new bootstrap.Modal(document.getElementById('newTopicModal'))
+  newTopicModal.show()
+</script>
+{{/if}} --}}

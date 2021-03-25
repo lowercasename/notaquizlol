@@ -1,0 +1,212 @@
+<div class="col-12">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{topic.name}}</li>
+    </ol>
+  </nav>
+  <h1>{{topic.name}}</h1>
+  <p class="lead">Topics are collections of questions. Add questions to topics, then build and share
+    quizzes using those questions.</p>
+  <div class="card mb-3">
+    <div class="card-body">
+      <h2>Questions</h2>
+      {{#if questions}}
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Type</th>
+            <th scope="col">Question</th>
+            <th scope="col">Correct answer</th>
+            <th scope="col">Other answers</th>
+            <th scope="col">Tools</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each questions}}
+          <tr>
+            <td style="text-transform:capitalize;">{{this.type}}</td>
+            <td>{{this.question}}</td>
+            <td>{{this.answers}}</td>
+            <td>{{this.wrongAnswers}}</td>
+            <td><button type="button" class="btn btn-outline-danger" data-action="delete-question"
+                data-id="{{this._id}}"><i class="fal fa-trash-alt"></i></button></td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      {{else}}
+      <div class="alert alert-primary">
+        You haven't added any questions yet. <a href="#upload-questions">Upload some now!</a>
+      </div>
+      {{/if}}
+    </div>
+  </div>
+  <div class="card mb-3">
+    <div class="card-body">
+      <h2>Quizzes</h2>
+      {{#if quizzes}}
+      <div class="list-group mt-3">
+        {{#each quizzes}}
+        <div class="list-group-item">
+          <h5 class="d-flex align-items-center justify-content-between">
+            {{this.name}}
+            <div>
+              <a href="/dashboard/quiz/{{this._id}}" class="me-2 btn btn-sm btn-outline-primary">View analytics</a>
+              <button type="button" class="me-2 btn btn-sm btn-outline-primary"
+                data-clipboard-target="#share-link-{{this._id}}">Copy share link</a>
+                <button type="button" class="ms-2 btn btn-outline-danger btn-sm" data-action="delete-quiz"
+                  data-id="{{this._id}}"><i class="fal fa-trash-alt"></i></button>
+            </div>
+          </h5>
+          <div class="text-muted">
+            {{this.description}}
+          </div>
+          <div>
+            <strong style="text-transform: capitalize;">{{this.questionType}}</strong> questions;
+            <strong>{{this.numberOfQuestions}}</strong> questions; shuffling <strong>{{#if
+              this.shuffle}}on{{else}}off{{/if}}</strong>; reversing <strong>{{#if
+              this.reverse}}on{{else}}off{{/if}}</strong>
+          </div>
+          <div>
+            <strong>Share link</strong> <a href="https://notaquiz.lol/quiz/{{this.shareCode}}" target="_blank"
+              id="share-link-{{this._id}}">https://notaquiz.lol/quiz/{{this.shareCode}}</a>
+          </div>
+        </div>
+        {{/each}}
+      </div>
+      {{else}}
+      <div class="alert alert-primary mt-3">
+        You haven't created any quizzes yet. <a href="#create-quiz">Create one now!</a>
+      </div>
+      {{/if}}
+    </div>
+  </div>
+  <div class="card mb-3" id="create-quiz">
+    <div class="card-body">
+      <h2>Create a quiz</h2>
+      <form class="mt-3" action="/api/quiz" method="POST">
+        {{> flash}}
+        <div class="mb-3">
+          <input type="text" class="form-control" name="quizName" placeholder="Quiz name"
+            value="{{#if flash}}{{flash.quizName}}{{/if}}">
+        </div>
+        <div class="mb-3">
+          <textarea class="form-control" name="description" rows="3"
+            placeholder="Quiz description or instructions">{{#if flash}}{{flash.quizDescription}}{{/if}}</textarea>
+        </div>
+        <div class="mb-3">
+          <select class="form-select" aria-label="Type of questions" name="type">
+            <option selected>Question type</option>
+            <option value="single">Single</option>
+            <option value="multiple">Multiple</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <input type="number" class="form-control" name="numberOfQuestions" placeholder="Number of questions">
+          <small class="form-text">If you specify more questions than there are
+            questions in this topic, the quiz will
+            repeat questions.</small>
+        </div>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" value="true" id="shuffle-questions-checkbox"
+            name="shuffleQuestions">
+          <label class="form-check-label" for="shuffle-questions-checkbox">
+            Shuffle the order of questions each time the quiz is taken?
+          </label>
+        </div>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" value="true" id="reverse-questions-checkbox"
+            name="reverseQuestions">
+          <label class="form-check-label" for="reverse-questions-checkbox">
+            Reverse the question and answer of a random selection of <strong>single</strong> questions each time the
+            quiz is taken?
+          </label>
+        </div>
+        <input type="hidden" name="topic" value="{{topic._id}}">
+        <div class="mb-3">
+          <button type="submit" class="btn btn-primary">Create quiz</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card mb-3" id="upload-questions">
+    <div class="card-body">
+      <h2>Upload questions</h2>
+      <p>Upload a .CSV file of questions. The number of items in each row determines the kind of question created.</p>
+      <ul>
+        <li><strong>Two columns:</strong> A single-response question where the responder types in their answer.</li>
+        <li><strong>More than two columns:</strong> A multiple-choice question. The first column is the question; the
+          second column is the correct answer; every subsequent column is an incorrect answer.</li>
+      </ul>
+      <form action="/api/csv" method="POST" enctype="multipart/form-data">
+        {{> flash}}
+        <div class="mb-3">
+          <input class="form-control" type="file" name="csv" />
+        </div>
+        <input type="hidden" name="topic" value="{{topic._id}}">
+        <div class="mb-3">
+          <button type="submit" class="btn btn-primary">Upload</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card mb-3">
+    <div class="card-body">
+      <h2 class="text-danger mb-3">Danger zone</h2>
+      <button type="button" class="btn btn-danger mb-2" data-action="delete-topic" data-id="{{topic._id}}"><i
+          class="fal fa-trash-alt"></i> Delete this topic</button>
+      <p>This will also delete all questions, quizzes, and analytics associated with this topic.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function () {
+    $('button[data-action=delete-question]').click(function () {
+      var questionId = $(this).data('id')
+      var tableRow = $(this).closest('tr')
+      $.ajax({
+        url: '/api/question',
+        type: 'DELETE',
+        data: {
+          questionId: questionId
+        },
+        success: function (result) {
+          tableRow.remove()
+        }
+      });
+    })
+
+    $('button[data-action=delete-quiz]').click(function () {
+      var quizId = $(this).data('id')
+      var listRow = $(this).closest('.list-group-item')
+      $.ajax({
+        url: '/api/quiz',
+        type: 'DELETE',
+        data: {
+          quizId: quizId
+        },
+        success: function (result) {
+          listRow.remove()
+        }
+      });
+    })
+
+    $('button[data-action=delete-topic]').click(function () {
+      var topicId = $(this).data('id')
+      $.ajax({
+        url: '/api/topic',
+        type: 'DELETE',
+        data: {
+          topicId: topicId
+        },
+        success: function (result) {
+          window.location.href = '/dashboard'
+        }
+      });
+    })
+
+    new ClipboardJS('.btn');
+  })
+</script>

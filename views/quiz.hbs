@@ -1,0 +1,185 @@
+<div id="app">
+  <div class="quiz-container" v-if="quiz && questions.length">
+    <h2 class="quiz-card__title text-center mt-4">|| quiz.name ||</h2>
+    <div class="card quiz-card shadow-lg mt-4">
+      <div class="card-body">
+        <div class="quiz--intro p-3" v-if="!quizStarted">
+          <p class="quiz-card__description text-center">
+            || quiz.description ||
+          </p>
+          <p class="text-center"><strong>|| quiz.numberOfQuestions||</strong> questions</p>
+          <input type="text" class="form-control form-control-lg" v-model="responderName" placeholder="Enter your name">
+          <div class="quiz-card__controls mt-4 d-flex justify-content-center">
+            <button type="button" class="btn btn-lg btn-success" @click="startQuiz">Ready!</button>
+          </div>
+        </div>
+        <transition-group name="slide-fade">
+          <div class="quiz--slide p-3" v-for="(item, index) in questions" :key="item._id"
+            v-show="quizStarted && !quizFinished && index === currentQuestion">
+            <div class="quiz-slide__content">
+              <div class="quiz--number text-center fw-bold">|| currentQuestion + 1 ||/|| questions.length ||</div>
+              <div class="quiz--progress-bar mb-4">
+                <div class="quiz--progress-bar-inner" :style="{ width: currentQuestion / questions.length * 100 + '%'}">
+                </div>
+              </div>
+              <h4>|| item.question ||</h4>
+              <input type="text" class="form-control mt-4" v-model="currentAnswer" placeholder="Type here">
+            </div>
+            <div class="quiz-slide__controls mt-4 d-flex justify-content-between">
+              <button type="button" class="btn btn-outline-secondary" @click="previousQuestion"><i class="fas"
+                  :class="index === 0 ? 'fa-ban' : 'fa-angle-left'"></i> || index === 0 ? 'Cancel' : 'Previous'
+                ||
+              </button>
+              <button type="button" class="btn btn-outline-primary" @click="nextQuestion">Next <i
+                  class="fal fa-angle-right"></i></button>
+            </div>
+          </div>
+        </transition-group>
+        <div class="quiz--conclusion p-3" v-if="quizFinished">
+          <h1 class="text-center fw-bold mb-4">🙌 🎉 Nice one! 🎉 🙌</h1>
+          <h2>Your results</h2>
+          <ul class="list-group mb-4">
+            <li class="list-group-item" :class="question.correct ? 'list-group-item-success' : 'list-group-item-danger'" v-for="(question, index) in questions"><div class="fw-bold"><i class="fas" :class="question.correct ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i> || question.question ||</div>
+            <div class="mt-2"><strong>You said: </strong> || answers[index] ||</div>
+            <div class="mt-2" v-if="!question.correct"><strong>Answer: </strong> || question.answers[0] || </strong></div>
+            </li>
+          </ul>
+          <h3 class="text-success text-center fw-bold mb-4">Score: || questions.filter(o => o.correct).length ||/|| questions.length||</h3>
+          <div class="text-muted">Your results have been recorded, you can now close this tab.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div v-else class="text-center">
+    <i class="fas fa-spinner fa-spin"></i> Loading...
+  </div>
+</div>
+
+<script>
+  var app = new Vue({
+    el: '#app',
+    delimiters: ['||', '||'],
+    data: {
+      message: 'Hello Vue!',
+      quiz: null,
+      questions: null,
+      quizStarted: false,
+      quizFinished: false,
+      currentQuestion: 0,
+      currentAnswer: '',
+      responderName: '',
+      answers: {}
+    },
+    methods: {
+      startQuiz() {
+        this.quizStarted = true;
+      },
+      finishQuiz() {
+        Object.keys(this.answers).forEach(o => {
+          let answer = this.answers[o].toLowerCase().trim()
+          let correctAnswer = this.questions[o].answers[0].toLowerCase().trim()
+          if (answer === correctAnswer) {
+            this.questions[o].correct = true;
+          }
+        })
+        var payload = {
+          topicId: this.quiz.topic,
+          quizId: this.quiz._id,
+          questions: this.questions.map((o, i) => { return { question: o._id, correct: o.correct || false, answer: this.answers[i], correctAnswer: this.questions[i].answers[0] }}),
+          name: this.responderName
+        }
+        $.post('/api/attempt', payload, function(data) {
+          console.log(data)
+        })
+        this.quizFinished = true;
+      },
+      nextQuestion() {
+        // End the quiz if we're on the last question
+        if (this.currentQuestion === this.questions.length - 1) {
+          // Save the current answer for the current question
+          this.answers[this.currentQuestion] = this.currentAnswer;
+          this.finishQuiz();
+        } else {
+          // Save the current answer for the current question
+          this.answers[this.currentQuestion] = this.currentAnswer;
+          // Do we have a saved answer for the next question?
+          if (this.answers[this.currentQuestion + 1]) {
+            this.currentAnswer = this.answers[this.currentQuestion + 1];
+          } else {
+            // If not, reset the text field
+            this.currentAnswer = "";
+          }
+          // Move to the next question
+          this.currentQuestion = this.currentQuestion + 1;
+        }
+      },
+      previousQuestion() {
+        // Reset the quiz if we're on question 0
+        if (this.currentQuestion === 0) {
+          this.quizStarted = false;
+          this.answers = {}
+        } else {
+          // Save the current answer for the current question
+          this.answers[this.currentQuestion] = this.currentAnswer;
+          // Do we have a saved answer for the previous question?
+          if (this.answers[this.currentQuestion - 1]) {
+            this.currentAnswer = this.answers[this.currentQuestion - 1];
+          } else {
+            // If not, reset the text field
+            this.currentAnswer = "";
+          }
+          // Move to the previous question
+          this.currentQuestion = this.currentQuestion - 1;
+        }
+      }
+    },
+    beforeMount() {
+      $.ajax({
+        url: '/api/quiz/{{quiz._id}}',
+        context: this,
+        success: function (data) {
+          this.quiz = data.quiz
+          this.questions = data.questions
+        }
+      });
+    }
+  })
+</script>
+
+<style>
+  .quiz-card {
+    overflow: hidden;
+  }
+
+  .quiz-slide__content {
+    min-height: 300px;
+  }
+
+  .quiz--progress-bar {
+    width: 100%;
+    background: #e9ecef;
+    border-radius: 10px;
+    height: 10px;
+    overflow: hidden;
+  }
+
+  .quiz--progress-bar-inner {
+    background: #61d6a0;
+    height: 10px;
+  }
+
+  .slide-fade-enter-active {
+    transition: all .15s ease;
+  }
+
+  .slide-fade-leave-active {
+    transition: all .15s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+  }
+
+  .slide-fade-enter,
+  .slide-fade-leave-to {
+    position: absolute;
+    transform: translateX(50px);
+    opacity: 0;
+  }
+</style>
