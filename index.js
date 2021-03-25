@@ -389,7 +389,7 @@ app.post('/create-account', [
       type: 'success',
       errors: { msg: 'Your account has been created. Please sign in.' }
     }
-    res.send('/')
+    res.redirect('/')
   } else {
     console.log(errors.array());
     req.session.sessionFlash = {
