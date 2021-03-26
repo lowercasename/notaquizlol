@@ -103,6 +103,11 @@
           </select>
         </div>
         <div class="mb-3">
+          <input type="text" class="form-control" name="quizCode" placeholder="Quiz sharing code"
+            value="{{#if flash}}{{flash.quizCode}}{{/if}}">
+          <small class="form-text">Letters and numbers only, please. If you leave this blank, a random sharing code will be generated for you.</small>
+        </div>
+        <div class="mb-3">
           <input type="number" class="form-control" name="numberOfQuestions" placeholder="Number of questions">
           <small class="form-text">If you specify more questions than there are
             questions in this topic, the quiz will

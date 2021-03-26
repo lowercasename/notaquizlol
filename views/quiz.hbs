@@ -1,4 +1,4 @@
-<div id="app">
+<div id="app" class="col-12 col-lg-8 offset-lg-2">
   <div class="quiz-container" v-if="quiz && questions.length">
     <h2 class="quiz-card__title text-center mt-4">|| quiz.name ||</h2>
     <div class="card quiz-card shadow-lg mt-4">
@@ -8,14 +8,16 @@
             || quiz.description ||
           </p>
           <p class="text-center"><strong>|| quiz.numberOfQuestions||</strong> questions</p>
-          <input type="text" class="form-control form-control-lg" v-model="responderName" placeholder="Enter your name">
+          <input type="text" class="form-control form-control-lg" v-model="responderName" placeholder="Enter your name"
+            @keyup.enter="startQuiz" ref="nameInput">
+          <small class="form-text">Hit <span class="badge bg-tertiary">Enter</span> to start</small>
           <div class="quiz-card__controls mt-4 d-flex justify-content-center">
             <button type="button" class="btn btn-lg btn-success" @click="startQuiz">Ready!</button>
           </div>
         </div>
         <transition-group name="slide-fade">
           <div class="quiz--slide p-3" v-for="(item, index) in questions" :key="item._id"
-            v-show="quizStarted && !quizFinished && index === currentQuestion">
+            v-if="quizStarted && !quizFinished && index === currentQuestion">
             <div class="quiz-slide__content">
               <div class="quiz--number text-center fw-bold">|| currentQuestion + 1 ||/|| questions.length ||</div>
               <div class="quiz--progress-bar mb-4">
@@ -23,14 +25,16 @@
                 </div>
               </div>
               <h4>|| item.question ||</h4>
-              <input type="text" class="form-control mt-4" v-model="currentAnswer" placeholder="Type here">
+              <input type="text" class="form-control mt-4" v-model="currentAnswer" placeholder="Type here"
+                @keyup.enter="nextQuestion" ref="answerInput">
+              <small class="form-text">Hit <span class="badge bg-tertiary">Enter</span> for the next question</small>
             </div>
             <div class="quiz-slide__controls mt-4 d-flex justify-content-between">
-              <button type="button" class="btn btn-outline-secondary" @click="previousQuestion"><i class="fas"
-                  :class="index === 0 ? 'fa-ban' : 'fa-angle-left'"></i> || index === 0 ? 'Cancel' : 'Previous'
+              <button type="button" class="btn btn-secondary" @click="previousQuestion"><i class="fas"
+                  :class="index === 0 ? 'fa-ban' : 'fa-angle-left'"></i> || index === 0 ? 'Restart quiz' : 'Previous question'
                 ||
               </button>
-              <button type="button" class="btn btn-outline-primary" @click="nextQuestion">Next <i
+              <button type="button" class="btn btn-primary" @click="nextQuestion">Next question<i
                   class="fal fa-angle-right"></i></button>
             </div>
           </div>
@@ -39,12 +43,18 @@
           <h1 class="text-center fw-bold mb-4">🙌 🎉 Nice one! 🎉 🙌</h1>
           <h2>Your results</h2>
           <ul class="list-group mb-4">
-            <li class="list-group-item" :class="question.correct ? 'list-group-item-success' : 'list-group-item-danger'" v-for="(question, index) in questions"><div class="fw-bold"><i class="fas" :class="question.correct ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i> || question.question ||</div>
-            <div class="mt-2"><strong>You said: </strong> || answers[index] ||</div>
-            <div class="mt-2" v-if="!question.correct"><strong>Answer: </strong> || question.answers[0] || </strong></div>
+            <li class="list-group-item" :class="question.correct ? 'list-group-item-success' : 'list-group-item-danger'"
+              v-for="(question, index) in questions">
+              <div class="fw-bold"><i class="fas"
+                  :class="question.correct ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'"></i> ||
+                question.question ||</div>
+              <div class="mt-2"><strong>You said: </strong> || answers[index] ||</div>
+              <div class="mt-2" v-if="!question.correct"><strong>Answer: </strong> || question.answers[0] || </strong>
+              </div>
             </li>
           </ul>
-          <h3 class="text-success text-center fw-bold mb-4">Score: || questions.filter(o => o.correct).length ||/|| questions.length||</h3>
+          <h3 class="text-success text-center fw-bold mb-4">Score: || questions.filter(o => o.correct).length ||/||
+            questions.length||</h3>
           <div class="text-muted">Your results have been recorded, you can now close this tab.</div>
         </div>
       </div>
@@ -73,6 +83,10 @@
     methods: {
       startQuiz() {
         this.quizStarted = true;
+        // Focus the input element
+        this.$nextTick(() => {
+          this.$refs.answerInput[0].focus();
+        })
       },
       finishQuiz() {
         Object.keys(this.answers).forEach(o => {
@@ -85,10 +99,10 @@
         var payload = {
           topicId: this.quiz.topic,
           quizId: this.quiz._id,
-          questions: this.questions.map((o, i) => { return { question: o._id, correct: o.correct || false, answer: this.answers[i], correctAnswer: this.questions[i].answers[0] }}),
+          questions: this.questions.map((o, i) => { return { question: o._id, correct: o.correct || false, answer: this.answers[i], correctAnswer: this.questions[i].answers[0] } }),
           name: this.responderName
         }
-        $.post('/api/attempt', payload, function(data) {
+        $.post('/api/attempt', payload, function (data) {
           console.log(data)
         })
         this.quizFinished = true;
@@ -111,6 +125,10 @@
           }
           // Move to the next question
           this.currentQuestion = this.currentQuestion + 1;
+          // Focus the input element
+          this.$nextTick(() => {
+            this.$refs.answerInput[0].focus();
+          })
         }
       },
       previousQuestion() {
@@ -118,6 +136,8 @@
         if (this.currentQuestion === 0) {
           this.quizStarted = false;
           this.answers = {}
+          this.currentAnswer = ""
+          this.responderName = ""
         } else {
           // Save the current answer for the current question
           this.answers[this.currentQuestion] = this.currentAnswer;
@@ -130,6 +150,10 @@
           }
           // Move to the previous question
           this.currentQuestion = this.currentQuestion - 1;
+          // Focus the input element
+          this.$nextTick(() => {
+            this.$refs.answerInput[0].focus();
+          })
         }
       }
     },
@@ -140,9 +164,12 @@
         success: function (data) {
           this.quiz = data.quiz
           this.questions = data.questions
+          this.$nextTick(() => {
+            this.$refs.nameInput.focus();
+          })
         }
       });
-    }
+    },
   })
 </script>
 

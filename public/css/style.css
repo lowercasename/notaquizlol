@@ -31,3 +31,7 @@ html, body {
 #quiz-body {
   background: #f6f6f6;
 }
+
+.badge.bg-tertiary {
+  background-color: #909397 !important;
+}
