@@ -2,7 +2,9 @@ const express = require('express')
 const app = express()
 const port = 9988
 
-const { nanoid } = require('nanoid')
+const { customAlphabet } = require('nanoid');
+const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const nanoid = customAlphabet(alphabet, 12);
 
 require('dotenv').config();
 const fs = require('fs')
@@ -71,14 +73,14 @@ app.use(function (req, res, next) {
   next();
 });
 
-const multer  = require('multer');
+const multer = require('multer');
 const Quiz = require('./models/Quiz');
 const Attempt = require('./models/Attempt');
 const upload = multer({ dest: 'uploads/' })
 
 const checkAuth = (req, res, next) => {
   if (!req.session.user) {
-    res.redirect('/');
+    res.redirect('/sign-in');
   } else {
     next();
   }
@@ -86,8 +88,8 @@ const checkAuth = (req, res, next) => {
 
 const shuffleArray = (array) => {
   for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
   }
 }
 
@@ -152,16 +154,21 @@ app.post('/api/attempt', async (req, res) => {
 
 
 app.get('/', (req, res) => {
-  res.render('landing', { flash: res.locals.sessionFlash });
+  res.render('landing', { layout: 'quiz', flash: res.locals.sessionFlash });
 })
 
 app.get('/create-account', (req, res) => {
   res.render('create-account', { flash: res.locals.sessionFlash });
 })
 
+app.get('/sign-in', (req, res) => {
+  res.render('sign-in', { flash: res.locals.sessionFlash });
+})
+
+
 app.get('/sign-out', (req, res) => {
   req.session.user = false;
-  res.redirect('/')
+  res.redirect('/sign-in')
 })
 
 app.get('/dashboard', checkAuth, async (req, res) => {
@@ -228,9 +235,15 @@ app.delete('/api/topic', checkAuth, async (req, res) => {
 })
 
 app.post('/api/quiz', checkAuth, [
-  check('quizName').isLength({ min: 1}).withMessage('Please enter a quiz name.'),
+  check('quizName').isLength({ min: 1 }).withMessage('Please enter a quiz name.'),
   check('type').isIn(['single', 'multiple']).withMessage('Please select a quiz type.'),
-  check('numberOfQuestions').isInt({min: 1}).withMessage('Please enter the number of questions.')
+  check('numberOfQuestions').isInt({ min: 1 }).withMessage('Please enter the number of questions.'),
+  check('quizCode').optional({ checkFalsy: true }).isLength({ max: 32 }).withMessage('The quiz sharing code can be up to 32 characters long.').isAlphanumeric().withMessage('The quiz sharing code can only contain letters and numbers.').custom(async (quizCode) => {
+    const checkUniqueCode = await Quiz.find({ shareCode: quizCode })
+    if (checkUniqueCode && checkUniqueCode.length) {
+      throw new Error('This quiz sharing code is already in use.')
+    }
+  })
 ], async (req, res) => {
   const errors = validationResult(req);
   if (errors.isEmpty()) {
@@ -244,7 +257,7 @@ app.post('/api/quiz', checkAuth, [
       shuffle: shuffleQuestions,
       reverse: reverseQuestions,
       numberOfQuestions: req.body.numberOfQuestions,
-      shareCode: nanoid(),
+      shareCode: req.body.quizCode ? req.body.quizCode : nanoid(),
     })
     await quiz.save()
     res.redirect('back')
@@ -254,6 +267,7 @@ app.post('/api/quiz', checkAuth, [
       errors: errors.array(),
       quizName: req.body.quizName,
       quizDescription: req.body.description,
+      quizCode: req.body.quizCode,
     }
     res.redirect('back');
   }
@@ -342,7 +356,7 @@ app.post('/sign-in', [
       errors,
       emailAddress: req.body.emailAddress
     }
-    res.redirect('/');
+    res.redirect('/sign-in');
   }
   const errors = validationResult(req);
   if (errors.isEmpty()) {
@@ -387,9 +401,9 @@ app.post('/create-account', [
     user.save()
     req.session.sessionFlash = {
       type: 'success',
-      errors: { msg: 'Your account has been created. Please sign in.' }
+      errors: [{ msg: 'Your account has been created. Please sign in.' }]
     }
-    res.redirect('/')
+    res.redirect('/sign-in')
   } else {
     console.log(errors.array());
     req.session.sessionFlash = {
