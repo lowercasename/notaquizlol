@@ -10,7 +10,7 @@ const quizSchema = new mongoose.Schema({
   shuffle: Boolean,
   reverse: Boolean,
   numberOfQuestions: Number,
-  shareCode: { type: String, trim: true },
+  shareCode: { type: String, trim: true, unique: true },
 });
 
 module.exports = mongoose.model('Quiz', quizSchema);
