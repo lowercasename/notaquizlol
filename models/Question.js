@@ -7,6 +7,7 @@ const questionSchema = new mongoose.Schema({
   question: { type: String, trim: true },
   answers: [{ type: String, trim: true }],
   wrongAnswers: [{ type: String, trim: true }],
+  anyAnswerValid: Boolean
 });
 
 module.exports = mongoose.model('Question', questionSchema);

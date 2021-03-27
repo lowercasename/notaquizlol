@@ -4,8 +4,9 @@ const DBRef = mongoose.Schema.Types.ObjectId;
 const questionAttemptSchema = new mongoose.Schema({
   question: { type: DBRef, ref: 'Question' },
   answer: { type: String, trim: true },
-  correctAnswer: { type: String, trim: true },
-  correct: Boolean
+  correctAnswers: [{ type: String, trim: true }],
+  correct: Boolean,
+  anyAnswerValid: Boolean,
 })
 
 const attemptSchema = new mongoose.Schema({
