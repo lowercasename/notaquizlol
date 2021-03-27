@@ -17,8 +17,8 @@
           <tr>
             <th scope="col">Type</th>
             <th scope="col">Question</th>
-            <th scope="col">Correct answer</th>
-            <th scope="col">Other answers</th>
+            <th scope="col">Correct answer(s)</th>
+            <th scope="col">Other answer(s)</th>
             <th scope="col">Tools</th>
           </tr>
         </thead>
@@ -27,8 +27,8 @@
           <tr>
             <td style="text-transform:capitalize;">{{this.type}}</td>
             <td>{{this.question}}</td>
-            <td>{{this.answers}}</td>
-            <td>{{this.wrongAnswers}}</td>
+            <td {{#if this.anyAnswerValid}}colspan="2"{{/if}}>{{#if this.anyAnswerValid}}No wrong answers! 😊{{else}}<ul class="ps-2">{{#each this.answers}}<li>{{this}}</li>{{/each}}</ul>{{/if}}</td>
+            {{#unless this.anyAnswerValid}}<td><ul class="ps-2">{{#each this.wrongAnswers}}<li>{{this}}</li>{{/each}}</ul></td>{{/unless}}
             <td><button type="button" class="btn btn-outline-danger" data-action="delete-question"
                 data-id="{{this._id}}"><i class="fal fa-trash-alt"></i></button></td>
           </tr>
@@ -49,8 +49,10 @@
       <div class="list-group mt-3">
         {{#each quizzes}}
         <div class="list-group-item">
-          <h5 class="d-flex align-items-center justify-content-between">
-            {{this.name}}
+          <div class="d-lg-flex align-items-center justify-content-between">
+            <h5>
+              {{this.name}} <span class="badge bg-secondary">{{this.numberOfQuestions}} questions</span>
+            </h5>
             <div>
               <a href="/dashboard/quiz/{{this._id}}" class="me-2 btn btn-sm btn-outline-primary">View analytics</a>
               <button type="button" class="me-2 btn btn-sm btn-outline-primary"
@@ -58,14 +60,13 @@
                 <button type="button" class="ms-2 btn btn-outline-danger btn-sm" data-action="delete-quiz"
                   data-id="{{this._id}}"><i class="fal fa-trash-alt"></i></button>
             </div>
-          </h5>
+          </div>
           <div class="text-muted">
             {{this.description}}
           </div>
           <div>
-            <strong style="text-transform: capitalize;">{{this.questionType}}</strong> questions;
-            <strong>{{this.numberOfQuestions}}</strong> questions; shuffling <strong>{{#if
-              this.shuffle}}on{{else}}off{{/if}}</strong>; reversing <strong>{{#if
+            <strong style="text-transform: capitalize;">{{this.questionType}}</strong> questions; shuffling
+            <strong>{{#if this.shuffle}}on{{else}}off{{/if}}</strong>; reversing <strong>{{#if
               this.reverse}}on{{else}}off{{/if}}</strong>
           </div>
           <div>
@@ -98,14 +99,16 @@
         <div class="mb-3">
           <select class="form-select" aria-label="Type of questions" name="type">
             <option selected>Question type</option>
-            <option value="single">Single</option>
-            <option value="multiple">Multiple</option>
+            <option value="single">Single only</option>
+            <option value="multiple">Multiple only</option>
+            <option value="mixed">Mixed</option>
           </select>
         </div>
         <div class="mb-3">
           <input type="text" class="form-control" name="quizCode" placeholder="Quiz sharing code"
             value="{{#if flash}}{{flash.quizCode}}{{/if}}">
-          <small class="form-text">Letters and numbers only, please. If you leave this blank, a random sharing code will be generated for you.</small>
+          <small class="form-text">Letters and numbers only, please. If you leave this blank, a random sharing code will
+            be generated for you.</small>
         </div>
         <div class="mb-3">
           <input type="number" class="form-control" name="numberOfQuestions" placeholder="Number of questions">
@@ -138,11 +141,15 @@
   <div class="card mb-3" id="upload-questions">
     <div class="card-body">
       <h2>Upload questions</h2>
-      <p>Upload a .CSV file of questions. The number of items in each row determines the kind of question created.</p>
+      <p>Upload a .CSV file of questions.</p>
       <ul>
-        <li><strong>Two columns:</strong> A single-response question where the responder types in their answer.</li>
-        <li><strong>More than two columns:</strong> A multiple-choice question. The first column is the question; the
-          second column is the correct answer; every subsequent column is an incorrect answer.</li>
+        <li><strong>Column A:</strong> Either 'single' or 'multiple', for a single-answer or multiple-choice question.
+        </li>
+        <li><strong>Column B:</strong> The question.</li>
+        <li><strong>Column C:</strong> The correct answer. For a single-answer question, if this and all following
+          columns are blank, any answer will be considered correct.</li>
+        <li><strong>Columns D onwards:</strong> For a multiple-choice question, the incorrect answers. For a
+          single-answer question, other correct answers.</li>
       </ul>
       <form action="/api/csv" method="POST" enctype="multipart/form-data">
         {{> flash}}

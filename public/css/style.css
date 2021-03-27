@@ -32,6 +32,25 @@ html, body {
   background: #f6f6f6;
 }
 
+/* Bootstrap overrides and adjustments */
+
 .badge.bg-tertiary {
   background-color: #909397 !important;
+}
+
+.btn {
+  text-transform: uppercase;
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.btn.btn-text {
+  text-transform: initial;
+  font-size: initial;
+  font-weight: initial;
+}
+
+.list-analytics-answers li {
+  padding-left: 10px;
+  text-indent: -10px;
 }

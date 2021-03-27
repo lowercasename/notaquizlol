@@ -30,9 +30,9 @@
           </tr>
           <tr class="collapse" id="answers--{{this._id}}">
             <td colspan="4">
-              <ul class="list-unstyled">
+              <ul class="list-unstyled list-analytics-answers">
               {{#each this.questions}}
-              <li><i class="fas fa-{{#if this.correct}}check-circle text-success{{else}}times-circle text-danger{{/if}}"></i> {{this.answer}} {{#unless this.correct}}(<strong>Correct answer:</strong> {{this.correctAnswer}}){{/unless}}</li>
+              <li><i class="fas fa-{{#if this.correct}}check-circle text-success{{else}}times-circle text-danger{{/if}}"></i> <strong class="text-{{#if this.correct}}success{{else}}danger{{/if}}">{{this.question.question}}</strong><br>{{#if this.answer}}<strong>Answer: </strong>{{this.answer}}{{else}}<em>No answer provided</em>{{/if}} {{#unless this.correct}}<br><strong>Correct answer(s):</strong> {{this.correctAnswers}}{{/unless}}</li>
               {{/each}}
               </ul>
             </td>

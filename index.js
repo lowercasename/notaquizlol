@@ -105,8 +105,9 @@ app.get('/quiz/:shareCode', async (req, res) => {
 app.get('/api/quiz/:quizId', async (req, res) => {
   const quiz = await Quiz.findOne({ _id: req.params.quizId })
   if (quiz) {
-    console.log(quiz)
-    let questions = await Question.find({ topic: quiz.topic, type: quiz.questionType }).lean()
+    // Select both single and multiple if we select 'mixed'
+    let targetType = quiz.questionType === 'mixed' ? { $in: ['single', 'multiple'] } : quiz.questionType
+    let questions = await Question.find({ topic: quiz.topic, type: targetType }).lean()
     if (quiz.shuffle) {
       shuffleArray(questions)
     }
@@ -119,18 +120,30 @@ app.get('/api/quiz/:quizId', async (req, res) => {
       }
     }
     finalQuestions = finalQuestions.filter(v => v !== undefined && v !== null);
+    // Shuffle answers
+    finalQuestions.forEach(o => {
+      // Basic shuffle - we don't use the proper shuffle here as it doesn't move the first array element (i.e. the answer!)
+      o.shuffledAnswers = o.answers.concat(o.wrongAnswers).sort(() => .5 - Math.random())
+      o.shuffledAnswers = o.shuffledAnswers.map(v => {
+        return {
+          content: v,
+          correct: o.answers.includes(v),
+          id: nanoid()
+        }
+      })
+    })
+    // Reverse some questions
     if (quiz.reverse) {
       finalQuestions.forEach(o => {
-        // 50% chance of a reversal
-        if (o.type === 'single' && Math.random() > 0.5) {
+        // 50% chance of a reversal for single questions with at least one answer
+        if (o.type === 'single' && !o.anyAnswerValid && Math.random() > 0.5) {
           let newAnswer = [o.question]
-          let newQuestion = o.answers[0]
+          let newQuestion = o.answers[Math.floor(Math.random() * o.answers.length)]
           o.answers = newAnswer
           o.question = newQuestion
         }
       })
     }
-    console.log(finalQuestions)
     return res.send({ quiz, questions: finalQuestions })
   } else {
     return res.sendStatus(404)
@@ -139,17 +152,23 @@ app.get('/api/quiz/:quizId', async (req, res) => {
 
 app.post('/api/attempt', async (req, res) => {
   console.log(req.body)
-  const attempt = new Attempt({
-    topic: req.body.topicId,
-    quiz: req.body.quizId,
-    name: req.body.name,
-    timestamp: Date().now,
-    score: req.body.questions.filter(o => o.correct == 'true').length,
-    total: req.body.questions.length,
-    questions: req.body.questions
-  })
-  attempt.save()
-  res.sendStatus(200)
+  if (req.body.topicId && req.body.quizId && req.body.name !== undefined && req.body.questions) {
+    console.log('Next')
+    const attempt = new Attempt({
+      topic: req.body.topicId,
+      quiz: req.body.quizId,
+      name: req.body.name,
+      timestamp: Date().now,
+      score: req.body.questions.filter(o => o.correct == 'true').length,
+      total: req.body.questions.length,
+      questions: req.body.questions
+    })
+    attempt.save()
+    res.sendStatus(200)
+  } else {
+    console.log('No')
+    res.sendStatus(500);
+  }
 })
 
 
@@ -190,8 +209,10 @@ app.get('/dashboard/topic/:topicId', checkAuth, async (req, res) => {
 app.get('/dashboard/quiz/:quizId', checkAuth, async (req, res) => {
   const quiz = await Quiz.findOne({ _id: req.params.quizId }).populate('topic').lean()
   if (quiz) {
-    const attempts = await Attempt.find({ quiz: quiz._id }).lean()
-    attempts.forEach(o => o.timestamp = new Date(o.timestamp).toLocaleTimeString('en-GB') + ' ' + new Date(o.timestamp).toLocaleDateString('en-GB'))
+    const attempts = await Attempt.find({ quiz: quiz._id }).populate('questions.question').lean()
+    attempts.forEach(o => {
+      o.timestamp = new Date(o.timestamp).toLocaleTimeString('en-GB') + ' ' + new Date(o.timestamp).toLocaleDateString('en-GB')
+    })
     res.render('analytics', { user: req.session.user, flash: res.locals.sessionFlash, quiz, attempts })
   } else {
     res.redirect('/dashboard')
@@ -228,6 +249,8 @@ app.delete('/api/topic', checkAuth, async (req, res) => {
       const quizResult = await Quiz.deleteMany({ topic: req.body.topicId })
       const attemptResult = await Attempt.deleteMany({ topic: req.body.topicId })
       return res.sendStatus(200)
+    } else {
+      return res.sendStatus(500)
     }
   } else {
     return res.sendStatus(404)
@@ -236,7 +259,7 @@ app.delete('/api/topic', checkAuth, async (req, res) => {
 
 app.post('/api/quiz', checkAuth, [
   check('quizName').isLength({ min: 1 }).withMessage('Please enter a quiz name.'),
-  check('type').isIn(['single', 'multiple']).withMessage('Please select a quiz type.'),
+  check('type').isIn(['single', 'multiple', 'mixed']).withMessage('Please select a quiz type.'),
   check('numberOfQuestions').isInt({ min: 1 }).withMessage('Please enter the number of questions.'),
   check('quizCode').optional({ checkFalsy: true }).isLength({ max: 32 }).withMessage('The quiz sharing code can be up to 32 characters long.').isAlphanumeric().withMessage('The quiz sharing code can only contain letters and numbers.').custom(async (quizCode) => {
     const checkUniqueCode = await Quiz.find({ shareCode: quizCode })
@@ -277,7 +300,10 @@ app.delete('/api/quiz', checkAuth, async (req, res) => {
   if (req.body.quizId) {
     const result = await Quiz.deleteOne({ _id: req.body.quizId })
     if (result.deletedCount === 1) {
+      const attemptResult = await Attempt.deleteMany({ quiz: req.body.quizId })
       return res.sendStatus(200)
+    } else {
+      return res.sendStatus(500)
     }
   } else {
     return res.sendStatus(404)
@@ -290,6 +316,8 @@ app.delete('/api/question', checkAuth, async (req, res) => {
     const result = await Question.deleteOne({ _id: req.body.questionId })
     if (result.deletedCount === 1) {
       return res.sendStatus(200)
+    } else {
+      return res.sendStatus(500)
     }
   } else {
     return res.sendStatus(404)
@@ -305,6 +333,9 @@ app.post('/api/csv', checkAuth, upload.single('csv'), async (req, res) => {
     }
     res.redirect('back');
   }
+  if (!req.file) {
+    return redirect([{ msg: 'Please upload a .CSV file.' }])
+  }
   if (req.file.mimetype !== 'text/csv') {
     return redirect([{ msg: 'Please upload a .CSV file.' }])
   }
@@ -312,6 +343,14 @@ app.post('/api/csv', checkAuth, upload.single('csv'), async (req, res) => {
     // No topic ID supplied - exit here
     return res.sendStatus(500);
   }
+  /**
+   * Some rules:
+   * All questions MUST have a type - either 'single' or 'multiple'
+   * All questions MUST have a question component
+   * Multiple questions MUST have at least one answer
+   * Single questions MAY have no answers - then they are always right
+   * Multiple questions MAY have no wrong answers - then they only have one answer to pick from 
+   */
   const results = [];
   fs.createReadStream(req.file.path)
     .pipe(csv({ headers: false }))
@@ -319,28 +358,59 @@ app.post('/api/csv', checkAuth, upload.single('csv'), async (req, res) => {
     .on('end', async () => {
       if (results.length) {
         for (const o of results) {
-          const type = Object.keys(o).length === 2 ? 'single' : 'multiple'
-          const question = o[0]
+          let anyAnswerValid = false
+          const type = o[0].trim().toLowerCase()
+          // If the type is not set (or set incorrectly), skip this row
+          if (type !== 'single' && type !== 'multiple') {
+            continue
+          }
+          const question = o[1].trim()
+          // If the question is not set, skip this row
+          if (!question) {
+            continue
+          }
           const answers = []
           const wrongAnswers = []
           Object.keys(o).forEach((q, i) => {
-            if (i === 1) {
-              answers.push(o[i])
-            } else if (i > 1) {
-              wrongAnswers.push(o[i])
+            // If the column isn't blank
+            if (o[i]) {
+              if (type === 'single') {
+                // For single questions, all columns above 1 are valid answers
+                // (anything else is obviously the wrong answer)
+                if (i >= 2) {
+                  answers.push(o[i])
+                }
+              } else if (type === 'multiple') {
+                // For multiple questions, column 2 is the answer
+                if (i === 2) {
+                  answers.push(o[i])
+                  // And every subsequent column is a wrong answer
+                } else if (i > 1) {
+                  wrongAnswers.push(o[i])
+                }
+              }
             }
           })
+          // If no answers at all and this is a multiple question...
+          if (!answers.length && type === 'multiple') {
+            // ... skip this row (multiples need at least one answer!)
+            continue
+          }
+          // If no answers and this is a single question...
+          if (!answers.length && type === 'single') {
+            // Mark it as any answer valid
+            anyAnswerValid = true;
+          }
           const newQuestion = new Question({
             topic: req.body.topic,
             type,
             question,
             answers,
-            wrongAnswers
+            wrongAnswers,
+            anyAnswerValid
           })
           await newQuestion.save()
-          console.log('Done')
         }
-        console.log('Finished loop')
       }
       res.redirect('back')
     });
@@ -362,7 +432,6 @@ app.post('/sign-in', [
   if (errors.isEmpty()) {
     // Does this user exist?
     const user = await User.findOne({ emailAddress: req.body.emailAddress })
-    console.log(user)
     if (!user) {
       return redirect([{ msg: "We couldn't log you in. Check your password and try again." }])
     }
@@ -388,7 +457,6 @@ app.post('/create-account', [
     }
   }),
 ], (req, res) => {
-  console.log(req.body);
   const errors = validationResult(req);
   if (errors.isEmpty()) {
     // Hash our password
@@ -405,7 +473,6 @@ app.post('/create-account', [
     }
     res.redirect('/sign-in')
   } else {
-    console.log(errors.array());
     req.session.sessionFlash = {
       type: 'danger',
       errors: errors.array(),
