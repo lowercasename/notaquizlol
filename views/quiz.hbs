@@ -10,7 +10,7 @@
           <p class="text-center"><strong>|| quiz.numberOfQuestions||</strong> questions</p>
           <input type="text" class="form-control form-control-lg" v-model="responderName" placeholder="Enter your name"
             @keyup.enter="startQuiz" ref="nameInput">
-          <small class="form-text">Hit <span class="badge bg-tertiary">Enter</span> to start</small>
+          <small class="form-text mt-2">Hit <span class="badge bg-tertiary">Enter</span> to start</small>
           <div class="quiz-card__controls mt-4 d-flex justify-content-center">
             <button type="button" class="btn btn-lg btn-success" @click="startQuiz">Ready!</button>
           </div>
@@ -28,7 +28,7 @@
               <div v-if="item.type === 'single'">
                 <input type="text" class="form-control mt-4" v-model="currentAnswer" placeholder="Type here"
                   ref="answerInput">
-                <small class="form-text">Hit <span class="badge bg-tertiary">Enter</span> for the next question</small>
+                <small class="form-text mt-2">Hit <span class="badge bg-tertiary">Enter</span> for the next question</small>
               </div>
               <div v-if="item.type === 'multiple'">
                 <div class="form-check" v-for="answer in item.shuffledAnswers" :key="answer.id">
